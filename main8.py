@@ -1,60 +1,38 @@
 import customtkinter
 from tkinter import *
-from tkinter import messagebox
 from CTkMessagebox import CTkMessagebox
-import subprocess
-import json
-import os
+import sys
 import requests
 from packaging import version
-import webbrowser
-import sys
+import os
 
-current_version = "1.0.0"
-version_check_url = "https://raw.githubusercontent.com/em94xd-png/test/refs/heads/main/version.json"
+CURRENT_VERSION = "2.0.0"
+URL = "https://raw.githubusercontent.com/em94xd-png/test/refs/heads/main/version.json"
 
-def check_for_updates():
+def verify_and_check_version():
     try:
-        response = requests.get(version_check_url, timeout=5)
+        response = requests.get(URL, timeout=5)
         response.raise_for_status()
-        data = response.json()
+        server_data = response.json()
+        
+        latest_version = server_data["latest_version"]
 
-        latest_version = data["latest_version"]
-        min_version = data["min_version_required"]
-        download_url = data["download_url"]
-
-        if version.parse(current_version) < version.parse(min_version):
-            messagebox.showerror(message=
-                "Need Update!"
-                f"Your current version {current_version}\n"
-                f"Update to {latest_version}"
+        if version.parse(CURRENT_VERSION) < version.parse(latest_version):
+            show_error_and_exit(
+                "จำเป็นต้องอัปเดต!", 
+                f"แอปเวอร์ชันนี้เก่าเกินไป ({CURRENT_VERSION})\n"
+                f"กรุณาปิดแล้วเปิดผ่าน Launcher.exe เพื่อทำการอัปเดตระบบอัตโนมัติ"
             )
+    except requests.RequestException:
+        show_error_and_exit("การเชื่อมต่อล้มเหลว", "ไม่สามารถตรวจสอบเวอร์ชันล่าสุดได้\nกรุณาเชื่อมต่ออินเทอร์เน็ต")
 
-            file_name = download_url.split("/")[-1]
-            if not file_name.endswith(".exe"):
-                file_name = "app_update.exe"
-
-            local_filename = os.path.join(os.getcwd(), file_name)
-
-            with requests.get(download_url, stream=True) as r:
-                r.raise_for_status()
-                with open(local_filename, "wb") as f:
-                    for chuck in r.iter_content(chunk_size=8192):
-                        f.write(chuck)
-
-            subprocess.Popen([local_filename], shell=True)
-            sys.exit()
-    
-    except (requests.RequestException, KeyError, ValueError, OSError) as e:
-        # กรณีเกิดข้อผิดพลาดในการโหลดหรือรันไฟล์ จะบังคับปิดแอปฯ เพื่อความปลอดภัย
-        root = customtkinter.CTk()
-        root.withdraw()
-        CTkMessagebox(
-            title="เกิดข้อผิดพลาด",
-            message="ไม่สามารถอัปเดตแอปพลิเคชันได้อัตโนมัติ\nกรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตของคุณ",
-            icon="cancel"
-        )
-        sys.exit()
+def show_error_and_exit(title, message):
+    """ฟังก์ชันช่วยสร้างกล่องข้อความเตือนแบบโมเดิร์นแล้วปิดโปรแกรม"""
+    root = customtkinter.CTk()
+    root.withdraw() # ซ่อนหน้าต่างหลักแอป
+    CTkMessagebox(title=title, message=message, icon="cancel")
+    root.mainloop()
+    sys.exit()
 
 def start_main_app():
     wd = customtkinter.CTk()
@@ -81,8 +59,8 @@ def start_main_app():
     btn2 = customtkinter.CTkButton(master=frame)
     btn2.pack(pady=(0,10))
 
-    btn3 = customtkinter.CTkButton(master=frame)
-    btn3.pack(pady=(0, 10))
+    # btn3 = customtkinter.CTkButton(master=frame)
+    # btn3.pack(pady=(0, 10))
 
     dp = customtkinter.CTkComboBox(master=frame)
     dp.pack()
@@ -90,5 +68,5 @@ def start_main_app():
     wd.mainloop()
 
 if __name__== "__main__":
-    check_for_updates()
+    verify_and_check_version() # บังคับเช็กด่านความปลอดภัยก่อนเริ่มแอป
     start_main_app()
